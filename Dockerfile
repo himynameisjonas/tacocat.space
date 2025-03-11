@@ -17,28 +17,29 @@ COPY Gemfile* package.json yarn.lock /opt/mastodon/
 
 # hadolint ignore=DL3008
 RUN apt-get update && \
-	apt-get -yq dist-upgrade && \
-	apt-get install -y --no-install-recommends build-essential \
-	git \
-	libicu-dev \
-	libidn-dev \
-	libpq-dev \
-	libjemalloc-dev \
-	zlib1g-dev \
-	libgdbm-dev \
-	libgmp-dev \
-	libssl-dev \
-	libyaml-0-2 \
-	ca-certificates \
-	libreadline8 \
-	python3 \
-	shared-mime-info && \
-	bundle config set --local deployment 'true' && \
-	bundle config set --local without 'development test' && \
-	bundle config set silence_root_warning true && \
-	bundle install -j"$(nproc)" && \
-	yarn install --pure-lockfile --production --network-timeout 600000 && \
-	yarn cache clean
+    apt-get -yq dist-upgrade && \
+    apt-get install -y --no-install-recommends build-essential \
+        git \
+        libicu-dev \
+        libidn-dev \
+        libpq-dev \
+        libjemalloc-dev \
+        zlib1g-dev \
+        libgdbm-dev \
+        libgmp-dev \
+        libssl-dev \
+        libyaml-dev \
+        libyaml-0-2 \
+        ca-certificates \
+        libreadline8 \
+        python3 \
+        shared-mime-info && \
+    bundle config set --local deployment 'true' && \
+    bundle config set --local without 'development test' && \
+    bundle config set silence_root_warning true && \
+    bundle install -j"$(nproc)" && \
+    yarn install --pure-lockfile --production --network-timeout 600000 && \
+    yarn cache clean
 
 FROM node:${NODE_VERSION}
 
