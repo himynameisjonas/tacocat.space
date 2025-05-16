@@ -64,6 +64,10 @@ services:
         hard: 65536
     ports:
       - '127.0.0.1:9200:9200'
+    logging:
+      options:
+        max-size: '10m'
+        max-file: '3'
 
   web:
     build: .
