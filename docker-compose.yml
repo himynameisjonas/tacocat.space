@@ -1,4 +1,6 @@
-version: '3'
+# This file is designed for production server deployment, not local development work
+# For a containerized local dev environment, see: https://github.com/mastodon/mastodon/blob/main/docs/DEVELOPMENT.md#docker
+
 services:
   db:
     restart: always
@@ -33,7 +35,7 @@ services:
 
   es:
     restart: always
-    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.4
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.29
     environment:
       - 'ES_JAVA_OPTS=-Xms512m -Xmx512m -Des.enforce.bootstrap.checks=true'
       - 'xpack.license.self_generated.type=basic'
@@ -76,7 +78,7 @@ services:
     env_file:
       - .env.production
       - db.env
-    command: bash -c "rm -f /mastodon/tmp/pids/server.pid; bundle exec rails s -p 3000"
+    command: bundle exec puma -C config/puma.rb
     networks:
       - traefik_proxy
       - internal_network
@@ -113,7 +115,7 @@ services:
     env_file:
       - .env.production
       - db.env
-    command: node ./streaming
+    command: node ./streaming/index.js
     networks:
       - traefik_proxy
       - internal_network
@@ -159,7 +161,7 @@ services:
     volumes:
       - ./public/system:/mastodon/public/system
     healthcheck:
-      test: [ 'CMD-SHELL', "ps aux | grep '[s]idekiq 6' || false" ]
+      test: [ 'CMD-SHELL', "ps aux | grep '[s]idekiq 8' || false" ]
     logging:
       options:
         max-size: '10m'
