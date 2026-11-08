@@ -9,11 +9,11 @@ module Mastodon
     end
 
     def minor
-      5
+      6
     end
 
     def patch
-      7
+      11
     end
 
     def default_prerelease
@@ -29,7 +29,7 @@ module Mastodon
     end
 
     def hometown_version
-      'hometown-1.2.0'
+      'hometown-1.3.1'
     end
 
     def to_a
@@ -50,7 +50,7 @@ module Mastodon
 
     def api_versions
       {
-        mastodon: 7,
+        mastodon: 11,
       }
     end
 

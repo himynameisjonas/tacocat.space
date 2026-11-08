@@ -33,6 +33,9 @@ class BatchedRemoveStatusService < BaseService
     # cascade the delete faster without loading the associations.
     statuses_and_reblogs.each_slice(50) { |slice| Status.unscoped.where(id: slice.pluck(:id)).delete_all }
 
+    # TODO: remove later, when we have added appropriate foreign keys
+    PreviewCardsStatus.where(status_id: statuses_and_reblogs.pluck(:id)).in_batches.delete_all
+
     # Since we skipped all callbacks, we also need to manually
     # deindex the statuses
     if Chewy.enabled?
@@ -82,7 +85,7 @@ class BatchedRemoveStatusService < BaseService
   def unpush_from_public_timelines(status, pipeline)
     return unless status.public_visibility? && status.id > @status_id_cutoff
 
-    payload = Oj.dump(event: :delete, payload: status.id.to_s)
+    payload = { event: :delete, payload: status.id.to_s }.to_json
 
     pipeline.publish('timeline:public', payload)
     pipeline.publish(status.local? ? 'timeline:public:local' : 'timeline:public:remote', payload)

@@ -37,7 +37,7 @@ class AccountStatusesFilter
     if anonymous?
       account.statuses.where(visibility: %i(public unlisted)).without_local_only
     elsif author?
-      account.statuses.all # NOTE: #merge! does not work without the #all
+      exclude_direct? ? account.statuses.where(visibility: %i(public unlisted private)) : account.statuses.all # NOTE: #merge! does not work without the #all
     elsif blocked?
       Status.none
     else
@@ -46,12 +46,29 @@ class AccountStatusesFilter
   end
 
   def filtered_scope
-    scope = account.statuses.left_outer_joins(:mentions)
+    scope = account.statuses
 
-    scope.merge!(scope.where(visibility: follower? ? %i(public unlisted private) : %i(public unlisted)).or(scope.where(mentions: { account_id: current_account.id })).group(Status.arel_table[:id]))
+    if exclude_direct? && follower?
+      scope = scope.list_eligible_visibility
+    elsif exclude_direct?
+      scope = account.statuses.left_outer_joins(:mentions)
+      scope.merge!(scope.distributable_visibility.or(scope.where(visibility: :private).where(mentions: { account_id: current_account.id })).group(Status.arel_table[:id]))
+    else
+      scope = account.statuses.left_outer_joins(:mentions)
+      scope.merge!(visibility_scope(scope).or(scope.where(mentions: { account_id: current_account.id })).group(Status.arel_table[:id]))
+    end
+
     scope.merge!(filtered_reblogs_scope) if reblogs_may_occur?
 
     scope
+  end
+
+  def visibility_scope(scope)
+    if follower?
+      scope.list_eligible_visibility
+    else
+      scope.distributable_visibility
+    end
   end
 
   def filtered_reblogs_scope
@@ -70,7 +87,7 @@ class AccountStatusesFilter
   end
 
   def only_media_scope
-    Status.joins(:media_attachments).merge(account.media_attachments).group(Status.arel_table[:id])
+    Status.without_empty_attachments.joins(:media_attachments).merge(account.media_attachments).group(Status.arel_table[:id])
   end
 
   def no_replies_scope
@@ -121,6 +138,10 @@ class AccountStatusesFilter
 
   def only_media?
     truthy_param?(:only_media)
+  end
+
+  def exclude_direct?
+    truthy_param?(:exclude_direct)
   end
 
   def exclude_replies?

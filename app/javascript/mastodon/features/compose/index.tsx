@@ -2,10 +2,11 @@ import { useEffect, useCallback } from 'react';
 
 import { useIntl, defineMessages } from 'react-intl';
 
-import { Helmet } from 'react-helmet';
 import { Link } from 'react-router-dom';
 
 import type { Map as ImmutableMap, List as ImmutableList } from 'immutable';
+
+import { Helmet } from '@unhead/react/helmet';
 
 import elephantUIPlane from '@/images/elephant_ui_plane.svg';
 import EditIcon from '@/material-icons/400-24px/edit_square.svg?react';
@@ -16,7 +17,11 @@ import MenuIcon from '@/material-icons/400-24px/menu.svg?react';
 import NotificationsIcon from '@/material-icons/400-24px/notifications-fill.svg?react';
 import PublicIcon from '@/material-icons/400-24px/public.svg?react';
 import SettingsIcon from '@/material-icons/400-24px/settings.svg?react';
-import { mountCompose, unmountCompose } from 'mastodon/actions/compose';
+import {
+  changeComposing,
+  mountCompose,
+  unmountCompose,
+} from 'mastodon/actions/compose';
 import { openModal } from 'mastodon/actions/modal';
 import { Column } from 'mastodon/components/column';
 import { ColumnHeader } from 'mastodon/components/column_header';
@@ -65,6 +70,10 @@ const Compose: React.FC<{ multiColumn: boolean }> = ({ multiColumn }) => {
     };
   }, [dispatch]);
 
+  const handleFocus = useCallback(() => {
+    dispatch(changeComposing(true));
+  }, [dispatch]);
+
   const handleLogoutClick = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
@@ -86,12 +95,11 @@ const Compose: React.FC<{ multiColumn: boolean }> = ({ multiColumn }) => {
 
   if (multiColumn) {
     return (
-      <div
-        className='drawer'
-        role='region'
-        aria-label={intl.formatMessage(navbarMessages.publish)}
-      >
-        <nav className='drawer__header'>
+      <div className='drawer'>
+        <nav
+          className='drawer__header'
+          aria-label={intl.formatMessage(navbarMessages.advancedUiQuickLinks)}
+        >
           <Link
             to='/getting-started'
             className='drawer__tab'
@@ -162,11 +170,15 @@ const Compose: React.FC<{ multiColumn: boolean }> = ({ multiColumn }) => {
 
         <Search singleColumn={false} />
 
-        <div className='drawer__pager'>
-          <div className='drawer__inner'>
+        <div
+          className='drawer__pager'
+          role='region'
+          aria-label={intl.formatMessage(navbarMessages.publish)}
+        >
+          <div className='drawer__inner' onFocus={handleFocus}>
             <ComposeFormContainer />
 
-            <div className='drawer__inner__mastodon'>
+            <div className='drawer__inner__mastodon with-zig-zag-decoration'>
               <img alt='' draggable='false' src={mascot ?? elephantUIPlane} />
             </div>
           </div>
@@ -189,7 +201,11 @@ const Compose: React.FC<{ multiColumn: boolean }> = ({ multiColumn }) => {
       />
 
       <div className='scrollable'>
-        <ComposeFormContainer />
+        <ComposeFormContainer
+          // This is fine on this single-purpose view
+          // eslint-disable-next-line jsx-a11y/no-autofocus
+          autoFocus
+        />
       </div>
 
       <Helmet>

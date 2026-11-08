@@ -17,6 +17,7 @@ namespace :dev do
       ).find_or_create_by!(id: 10_000_000)
       showcase_user.mark_email_as_confirmed!
       showcase_user.approve!
+      showcase_account.reload
 
       french_post = Status.create_with(
         text: 'Ceci est un sondage public écrit en Français',
@@ -200,6 +201,7 @@ namespace :dev do
         domain: 'example.org',
         uri: 'https://example.org/foo/bar',
         url: 'https://example.org/foo/bar',
+        inbox_url: 'https://example.org/users/fake.example/inbox',
         locked: true
       ).find_or_create_by!(id: 10_000_001)
 
@@ -441,8 +443,39 @@ namespace :dev do
         text: 'This post has a manual quote policy',
         account: remote_account,
         visibility: :public,
-        quote_approval_policy: Status::QUOTE_APPROVAL_POLICY_FLAGS[:public]
+        quote_approval_policy: InteractionPolicy::POLICY_FLAGS[:public]
       ).find_or_create_by!(id: 10_000_030)
+
+      showcase_collection = Collection.create_with(
+        account: showcase_account,
+        name: 'Showcase Collection',
+        description: 'super cool description',
+        local: true,
+        sensitive: false,
+        discoverable: true
+      ).find_or_create_by!(id: 10_000_031)
+
+      another_collection = Collection.create_with(
+        account: showcase_account,
+        name: 'Another Collection',
+        description: 'super cool description',
+        local: true,
+        sensitive: false,
+        discoverable: true
+      ).find_or_create_by!(id: 10_000_032)
+
+      report = Report.create_with(
+        action_taken_at: nil
+      ).find_or_create_by!(account: showcase_sidekick_account, target_account: showcase_account, comment: 'not very nice')
+
+      CollectionReport.find_or_create_by!(collection: showcase_collection, report: report)
+
+      CollectionReport.find_or_create_by!(collection: another_collection, report: report)
+
+      Report.create_with(
+        status_ids: [10_000_028, 10_000_027],
+        action_taken_at: nil
+      ).find_or_create_by!(account: showcase_sidekick_account, target_account: showcase_account, comment: 'very unique comment')
     end
   end
 end

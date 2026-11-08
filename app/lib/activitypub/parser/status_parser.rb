@@ -62,8 +62,12 @@ class ActivityPub::Parser::StatusParser
   def spoiler_text
     if @object['summary'].present?
       @object['summary']
-    elsif @object['preview'].present? && @object['preview']['type'] == 'Note' && @object['preview']['content'].present?
-      @object['preview']['content']
+    # Hometown: Display preview for other types
+    elsif @object['preview'].present?
+      # 'preview' can be an object (when?) or an array (e.g. for PeerTube instances).
+      # We convert it to an Array in all cases (Ruby skips the conversion if it's already an Array.)
+      preview = Array(@object['preview'])
+      preview.find { |x| x['type'] == 'Note' && x['content'].present? }
     elsif summary_language_map?
       @object['summaryMap'].values.first
     end
@@ -172,6 +176,14 @@ class ActivityPub::Parser::StatusParser
     equals_or_includes_any?(@object['type'], ActivityPub::Activity::CONVERTED_TYPES)
   end
 
+  def audience_to
+    as_array(@object['to'] || @json['to']).map { |x| value_or_id(x) }
+  end
+
+  def audience_cc
+    as_array(@object['cc'] || @json['cc']).map { |x| value_or_id(x) }
+  end
+
   private
 
   def quote_subpolicy(subpolicy)
@@ -180,15 +192,15 @@ class ActivityPub::Parser::StatusParser
     allowed_actors = as_array(subpolicy).dup
     allowed_actors.uniq!
 
-    flags |= Status::QUOTE_APPROVAL_POLICY_FLAGS[:public] if allowed_actors.delete('as:Public') || allowed_actors.delete('Public') || allowed_actors.delete('https://www.w3.org/ns/activitystreams#Public')
-    flags |= Status::QUOTE_APPROVAL_POLICY_FLAGS[:followers] if allowed_actors.delete(@options[:followers_collection])
-    flags |= Status::QUOTE_APPROVAL_POLICY_FLAGS[:following] if allowed_actors.delete(@options[:following_collection])
+    flags |= InteractionPolicy::POLICY_FLAGS[:public] if allowed_actors.delete('as:Public') || allowed_actors.delete('Public') || allowed_actors.delete('https://www.w3.org/ns/activitystreams#Public')
+    flags |= InteractionPolicy::POLICY_FLAGS[:followers] if allowed_actors.delete(@options[:followers_collection])
+    flags |= InteractionPolicy::POLICY_FLAGS[:following] if allowed_actors.delete(@options[:following_collection])
 
     # Remove the special-meaning actor URI
     allowed_actors.delete(@options[:actor_uri])
 
     # Any unrecognized actor is marked as unsupported
-    flags |= Status::QUOTE_APPROVAL_POLICY_FLAGS[:unsupported_policy] unless allowed_actors.empty?
+    flags |= InteractionPolicy::POLICY_FLAGS[:unsupported_policy] unless allowed_actors.empty?
 
     flags
   end
@@ -201,14 +213,6 @@ class ActivityPub::Parser::StatusParser
     elsif summary_language_map?
       @object['summaryMap'].keys.first
     end
-  end
-
-  def audience_to
-    as_array(@object['to'] || @json['to']).map { |x| value_or_id(x) }
-  end
-
-  def audience_cc
-    as_array(@object['cc'] || @json['cc']).map { |x| value_or_id(x) }
   end
 
   def summary_language_map?
